@@ -1,4 +1,3 @@
-// Import required modules and initialize Express and Socket.io
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -14,19 +13,26 @@ let onlineUsers = new Set();
 
 // Socket.io connection handler
 io.on('connection', (socket) => {
+    let addedUser = false;
 
     // Handle new usernames
-    socket.on('username', (username) => {
+    socket.on('add user', (username) => {
+        if (addedUser) return;
+        
         onlineUsers.add(username);
-        socket.emit('users', Array.from(onlineUsers));
-        io.emit('users', Array.from(onlineUsers));
+        addedUser = true;
+        
+        io.emit('users', Array.from(onlineUsers)); // Emit updated user list
+        io.emit('onlineUsers', onlineUsers.size);
     });
+    
 
     // Handle user disconnect
     socket.on('disconnect', () => {
         if (socket.username) {
             onlineUsers.delete(socket.username);
-            io.emit('users', Array.from(onlineUsers));
+            io.emit('users', Array.from(onlineUsers));  // Updated user list
+            io.emit('onlineUsers', onlineUsers.size);   // Updated user count
         }
     });
 

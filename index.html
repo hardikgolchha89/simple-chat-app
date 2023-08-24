@@ -148,6 +148,8 @@
         <h2>Online Users</h2>
         <ul id="online-users"></ul>
     </div>
+    <p>Online Users: <span id="online-users-count">0</span></p>
+
 
     <!-- Chat messages -->
     <div class="chat-messages"></div>
@@ -161,13 +163,16 @@
 
 <script>
     const socket = io.connect();
+
     let username;
 
     while(!username) {
         username = prompt("Enter your username:");
     }
 
-    socket.emit('username', username);
+    // Assuming you've captured the username in a variable called 'username'
+socket.emit('add user', username);
+
 
     //emojiMap
     function replaceWithEmojis(text) {
@@ -190,6 +195,44 @@
 
 
 
+//rem starts here
+const remStorage = {};
+
+function handleMessage(message) {
+    const parts = message.split(' ');
+
+    // Check for the /rem command
+    if (parts[0] === '/rem') {
+        // Storing a value
+        if (parts.length === 3) {
+            const name = parts[1];
+            const value = parts[2];
+
+            remStorage[name] = value;
+            return `Stored ${name} as ${value}`;
+        }
+        // Retrieving a value
+        else if (parts.length === 2) {
+            const name = parts[1];
+
+            if (remStorage[name]) {
+                return remStorage[name];
+            } else {
+                return `No value found for ${name}`;
+            }
+        } else {
+            return 'Invalid /rem command format.';
+        }
+    }
+    // Handle other messages as usual
+    else {
+        return message;
+    }
+}
+
+
+
+
     
 
     // Receive list of online users
@@ -197,54 +240,60 @@ socket.on('users', (users) => {
     document.getElementById('online-users').innerHTML = users.map(user => `<li>${user}</li>`).join('');
 });
 
+// Assuming you have already established the connection:
+// const socket = io.connect();
+
+const onlineUsersElement = document.getElementById('online-users-count');
+
+socket.on('onlineUsers', (count) => {
+    onlineUsersElement.textContent = count;
+    console.log("Received online users count:", count); // Debugging purpose
+});
 
 
 
-
-// Send message to the server
+let rememberedValues = {};  // Global storage for remembered values
 function sendMessage() {
     const messageBox = document.getElementById('message-box');
     let message = messageBox.value.trim();  // Trim whitespace
 
- // Replace keywords with emojis
- message = replaceWithEmojis(message);
-    
-    
+    // Replace keywords with emojis
+    message = replaceWithEmojis(message);
+
     // Check for commands
     if (message === "/clear") {
         document.querySelector('.chat-messages').innerHTML = '';
+    } else if (message.startsWith("/rem ")) {
+        // ... [Remember logic as provided earlier]
+    } else if (message.startsWith("/calc ")) {
+        const expression = message.split("/calc ")[1];
+        try {
+            const result = eval(expression);
+            const div = document.createElement('div');
+            div.className = 'chat-message';
+            div.innerHTML = `<strong>Calculation:</strong> ${expression} = ${result}`;
+            document.querySelector('.chat-messages').appendChild(div);
+        } catch (error) {
+            const div = document.createElement('div');
+            div.className = 'chat-message';
+            div.innerHTML = `<strong>Error:</strong> Invalid calculation.`;
+            document.querySelector('.chat-messages').appendChild(div);
+        }
     } else if (message === "/random-num") {
-        const randomNumber = Math.floor(Math.random() * 1000000) + 1;
-        const div = document.createElement('div');
-        div.className = 'chat-message';
-        div.innerHTML = `<strong>Random Number:</strong> ${randomNumber}`;
-        document.querySelector('.chat-messages').appendChild(div);
+        // ... [Random number logic as provided earlier]
     } else if (message === "/help") {
-        const commands = [
-            "/clear - Clear the chat",
-            "/random-num - Get a random number between 1 and 1 million",
-            "/help - Show this list"
-        ];
-        
-        const div = document.createElement('div');
-        div.className = 'chat-message';
-        div.innerHTML = `<strong>Commands:</strong> <br>${commands.join('<br>')}`;
-        document.querySelector('.chat-messages').appendChild(div);
+        // ... [Help logic as provided earlier]
     } else if (message) {
         socket.emit('message', { username: username, message: message });
-        
         const div = document.createElement('div');
         div.className = 'chat-message';
         div.innerHTML = `<strong>${username}:</strong> ${message}`;
         document.querySelector('.chat-messages').appendChild(div);
     }
     
-    messageBox.value = "";
+    messageBox.value = "";  // Clear the message box
     console.log('Message sent:', message);
 }
-
-
-
 
 
 
